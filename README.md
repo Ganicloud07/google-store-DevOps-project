@@ -12,18 +12,15 @@ This README provides end-to-end steps for installing **eksctl**, **kubectl**, **
 
 ---
 
-
-
 ## Deployment Workflow
 
 Follow these steps in order for successful deployment:
 
 ### Step 1: EKS Cluster Setup with terraform
-- Create EKS 
-- Apply eks file  
+- Create EKS with terraform file  
 
 ### Step 2: EKS Client & Cluster Update
-- Create EKS client server
+- Already eks clinet server is creted update your terraform keys 
 - Update cluster configuration
 - Verify cluster connectivity using `kubectl get nodes`
 
@@ -196,16 +193,6 @@ kubectl get pods -n kube-logging
 kubectl logs <pod-name> -n kube-logging
 ```
 
----
-
-## Additional Resources
-
-- [eksctl Documentation](https://eksctl.io/)
-- [kubectl Cheat Sheet](https://kubernetes.io/docs/reference/kubectl/cheatsheet/)
-- [ArgoCD Documentation](https://argo-cd.readthedocs.io/)
-- [Kubernetes Documentation](https://kubernetes.io/docs/)
-
----
 
 ## Summary of Key Components
 
