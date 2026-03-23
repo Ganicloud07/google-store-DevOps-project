@@ -19,103 +19,75 @@ runs-on: ubuntu-latest
 
 ```
 steps:
-  # -------------------------
   # Checkout
-  # -------------------------
-  - name: 🧾 Checkout repository
+  - name: Checkout
     uses: actions/checkout@v4
 
-  # -------------------------
   # AWS Credentials
-  # -------------------------
-  - name: 🔧 Configure AWS credentials
+  - name: Configure AWS credentials
     uses: aws-actions/configure-aws-credentials@v4
     with:
       aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
       aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       aws-region: ${{ env.AWS_REGION }}
 
-  # -------------------------
   # ECR Login
-  # -------------------------
-  - name: 📦 Login to Amazon ECR
+  - name: Login to Amazon ECR
     uses: aws-actions/amazon-ecr-login@v2
 
-  # -------------------------
-  # Build & Push Images
-  # -------------------------
-  - name: 🛠 Build and Push Docker Images
+  # Build & Push
+  - name: Build and Push Docker Images
     run: |
       set -e
       IMAGE_TAG="${GITHUB_SHA}"
 
       echo "Using IMAGE TAG: $IMAGE_TAG"
 
-      # -------- Frontend --------
+      # Frontend
       for service in $FRONTEND_SERVICES; do
         FOLDER="frontend/$service"
         REPO_NAME="shopping-site-$service"
         IMAGE_URI="$ECR_REGISTRY/$REPO_NAME:$IMAGE_TAG"
 
         if [ ! -f "$FOLDER/Dockerfile" ]; then
-          echo "⚠️ No Dockerfile in $FOLDER, skipping..."
+          echo "Skipping $service"
           continue
         fi
 
-        echo "🚀 Building $service"
-
         aws ecr describe-repositories --repository-names $REPO_NAME >/dev/null 2>&1 || \
-          aws ecr create-repository \
-            --repository-name $REPO_NAME \
-            --image-scanning-configuration scanOnPush=true
+          aws ecr create-repository --repository-name $REPO_NAME
 
         docker build -t $IMAGE_URI $FOLDER
         docker push $IMAGE_URI
 
-        # ✅ SAFE replace (only first occurrence)
         sed -i "0,/image:/s|image:.*|image: $IMAGE_URI|" "$FOLDER/deployment.yml"
-
-        echo "✅ Updated $FOLDER/deployment.yml"
-        cat "$FOLDER/deployment.yml"
       done
 
-      # -------- Backend --------
+      # Backend
       FOLDER="backend"
       REPO_NAME="shopping-site-backend"
       IMAGE_URI="$ECR_REGISTRY/$REPO_NAME:$IMAGE_TAG"
 
-      echo "🚀 Building backend"
-
       aws ecr describe-repositories --repository-names $REPO_NAME >/dev/null 2>&1 || \
-        aws ecr create-repository \
-          --repository-name $REPO_NAME \
-          --image-scanning-configuration scanOnPush=true
+        aws ecr create-repository --repository-name $REPO_NAME
 
       docker build -t $IMAGE_URI $FOLDER
       docker push $IMAGE_URI
 
-      # ✅ SAFE replace
       sed -i "0,/image:/s|image:.*|image: $IMAGE_URI|" "$FOLDER/backend-deployment.yml"
 
-      echo "✅ Updated backend YAML"
-      cat "$FOLDER/backend-deployment.yml"
-
-  # -------------------------
-  # Commit YAML changes
-  # -------------------------
-  - name: 🔄 Commit updated YAML files
+  # Commit changes
+  - name: Commit updated YAML
     run: |
       git config --global user.name "GitHub Actions"
       git config --global user.email "actions@github.com"
 
       git add frontend/**/deployment.yml backend/backend-deployment.yml
-      git commit -m "🔄 Update image tags [skip ci]" || echo "No changes"
+      git commit -m "update image [skip ci]" || echo "No changes"
       git push
 
-  # -------------------------
-  # Prevent CI loop
-  # -------------------------
-  - name: 🧠 Skip loop if commit was automated
+  # Prevent loop
+  - name: Skip loop
     if: contains(github.event.head_commit.message, '[skip ci]')
-    run: echo "Skipping re-triggered build"
+    run: echo "Skipping"
 ```
